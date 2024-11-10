@@ -1,0 +1,270 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Sun Jul 23 12:54:12 2023
+
+@author: West
+"""
+# for RUL prediction threshold=97.5 
+import numpy as np
+import matplotlib.pyplot as plt
+import pandas as pd
+
+# W3	W4	W5	W7	W8	W9	W10	G1	V4	V5
+Battery_Lifetime = [75,179,369,141,347,341,350,212,244,29]
+#Battery_Lifetime = [179,369,141,347,341,350,212,244]
+#for W4 a and b are Diag1(cycle0) and Diag4(cycle 123)
+statistical_features = pd.DataFrame(columns=['F1', 'F2', 'F3', 'F4', 'F5', 'F6', 'F7', 'F8', 'F9', 'F10', 
+                                 'F11', 'F12', 'F13', 'F14', 'F15', 'F16', 'F17', 'F18', 'F19', 'F20',
+                                 'F21', 'F22', 'F23', 'F24', 'F25', 'F26', 'F27', 'F28', 'F29', 'F30',
+                                 'F31', 'F32', 'F33'])
+
+geometric_features = pd.DataFrame(columns=['GF1','GF2','GF3','GF4'])
+geometric_features.loc[0, 'GF1':'GF4'] = [1866.18,-0.00910316,957.436,0.000214756]
+geometric_features.loc[1, 'GF1':'GF4'] = [2549.17,-0.0132841,1665.59,0]
+geometric_features.loc[2, 'GF1':'GF4'] = [949.127,0.00242522,565.107,0.00000523]
+geometric_features.loc[3, 'GF1':'GF4'] = [1333.41,0.000167807,799.54,0.0000333]
+geometric_features.loc[4, 'GF1':'GF4'] = [1387.94,-0.000203094,847.912,-0.000138255]
+geometric_features.loc[5, 'GF1':'GF4'] = [1888.76,-0.000437965,1039,0.0000882]
+geometric_features.loc[6, 'GF1':'GF4'] = [2315.92,-0.000139027,1397.43,0.0000645]
+geometric_features.loc[7, 'GF1':'GF4'] = [-201.261,0.00053741,-34.8628,0.0000464]
+
+statistical_features = pd.read_excel(r'F:\Data\statistical_features.xlsx')
+import re
+statistical_features['F22'] = statistical_features['F22'].apply(lambda x: re.sub(r'[^0-9.-]', '', str(x)))
+statistical_features['F21'] = statistical_features['F21'].apply(lambda x: re.sub(r'[^0-9.-]', '', str(x)))
+statistical_features['F22'] = pd.to_numeric(statistical_features['F22'])
+statistical_features['F21'] = pd.to_numeric(statistical_features['F21'])
+   
+features = np.hstack((statistical_features, geometric_features))
+features = pd.DataFrame(features)
+features.columns=['F1', 'F2', 'F3', 'F4', 'F5', 'F6', 'F7', 'F8', 'F9', 'F10', 
+                                 'F11', 'F12', 'F13', 'F14', 'F15', 'F16', 'F17', 'F18', 'F19', 'F20',
+                                 'F21', 'F22', 'F23', 'F24', 'F25', 'F26', 'F27', 'F28', 'F29', 'F30',
+                                 'F31', 'F32', 'F33','GF1','GF2','GF3','GF4']
+Batch_W4 = [0,25,75,123,132,159,176,179]
+Batch_W5 = [0,25,75,125,159,167,187,194,219,244,269,294,319,344,369]
+Batch_W7 = [0,25,75,125,141]
+Batch_W8 = [0,25,75,125,148,150,151,157,185,222,247,272,297,322,347]
+Batch_W9 = [0,25,75,122,144,145,146,150,179,216,241,266,291,316,341]
+Batch_W10 = [0,25,75,122,146,148,151,159,188,225,250,275,300,325,350]
+Batch_G1 = [0,25,30,37,62,87,112,137,162,187,212]
+Batch_V4 = [0,20,45,70,95,120,145,170,194,219,244]
+Batch_W3 = [0,25,75]
+Batch_V5 = [0,12,18,29]
+
+Batch_W3 = [0,25,75]
+Batch_W4 = [0,25,75]
+Batch_W5 = [0,25,75]
+Batch_W7 = [0,25,75]
+Batch_W8 = [0,25,75]
+Batch_W9 = [0,25,75]
+Batch_W10 = [0,25,75]
+Batch_G1 = [0,25,30]
+Batch_V4 = [0,20,45,70]
+Batch_V5 = [0,12,18]
+
+from mpl_toolkits.mplot3d import Axes3D
+fig = plt.figure()
+ax = fig.add_subplot(111, projection='3d')
+for i in range(len(features['F1'])):
+    label = '({}, {})'.format(features['Name'][i], Battery_Lifetime[i])
+    ax.text(features['F1'][i], features['F2'][i], Battery_Lifetime[i], label, 'x')
+    
+ax.set_xlabel('F1')
+ax.set_ylabel('F2')
+ax.set_zlabel('Battery_Lifetime')
+fig.colorbar(ax.scatter(features['F1'], features['F2'], Battery_Lifetime ,c=Battery_Lifetime))
+plt.show()
+
+# R2 values for all of the features
+from sklearn.linear_model import LinearRegression
+R_squared = []
+feature = features[:, 36]
+feature = feature.reshape(-1, 1)
+reg = LinearRegression()
+reg.fit(feature, Battery_Lifetime)
+EOL_Pred = reg.predict(feature)
+r_squared = reg.score(feature, Battery_Lifetime)
+print("R-squared: ", r_squared)
+
+plt.scatter(feature, Battery_Lifetime, color='red')
+plt.plot(feature, EOL_Pred)
+plt.xlabel('Feature ')
+plt.ylabel('Battery Lifetime')
+plt.show()
+R_squared.append(r_squared*100)
+
+
+# fit linear regression with elastic net
+from sklearn.linear_model import ElasticNet
+X = features.drop(['F18', 'F19', 'F20'], axis=1)
+X = features[['F21','F22']]
+Y = Battery_Lifetime
+new_X = test_set.drop(['F18', 'F19', 'F20'], axis=1)
+new_X = test_set[['F21','F22']]
+new_Y = [75,29]
+from sklearn.model_selection import train_test_split, cross_val_score
+X_train, X_test, y_train, y_test = train_test_split(X, Y, test_size=0.25)
+model = ElasticNet(alpha=5, l1_ratio=0.5)
+cv_scores = cross_val_score(model, X_train, y_train, cv=5)
+model.fit(X_train, y_train)
+coefficients = model.coef_
+intercept = model.intercept_
+predictions = model.predict(X_test)
+y_train_pred = model.predict(X_train)
+
+plt.plot(X_train['F1'],y_train_pred)
+for i, (x, y) in enumerate(zip(X_train['F1'], y_train_pred)):
+    plt.annotate(i, (x, y))
+plt.show()
+"""
+# fit linear regression OLS
+import statsmodels.api as sm
+X_train_WC = sm.add_constant(X_train)
+model = sm.OLS(y_train, X_train_WC)
+result = model.fit()
+result.fittedvalues
+
+plt.scatter(X_train, y_train, color='black', label='Training Data')
+X_train_sorted = np.sort(X_train, axis=0)
+y_train_pred = result.predict(sm.add_constant(X_train_sorted))
+plt.plot(X_train_sorted, y_train_pred, color='blue', linewidth=3, label='Fitted Model')
+plt.xlabel('X_train')
+plt.ylabel('y_train')
+plt.legend()
+plt.show()
+
+summary_table = results.summary().tables[1]
+data = summary_table.data[1:] 
+columns = summary_table.data[0]
+df = pd.DataFrame(data, columns=columns)
+df.to_csv('OLS.csv')
+"""
+from sklearn.linear_model import ElasticNet
+from sklearn.model_selection import GridSearchCV
+from sklearn.metrics import mean_squared_error
+from sklearn.metrics import mean_absolute_error
+from sklearn.metrics import r2_score
+
+
+model = ElasticNet()
+param_grid = {
+    'alpha': [0.000001,0.00001,0.0001,0.001,0.01,0.1, 1.66, 6],
+    'l1_ratio': [0.000001, 0.00001, 0.0001,0.001,0.01,0.1, 1.5, 0.99]
+}
+
+grid_search = GridSearchCV(estimator=model, param_grid=param_grid, scoring='neg_mean_absolute_error', cv=3)
+grid_search.fit(X_train_scaled , y_train)
+best_model = grid_search.best_estimator_
+best_model.fit(X_train_scaled ,y_train)
+
+y_train_pred = best_model.predict(X_train_scaled)
+train_rmse = mean_squared_error(y_train, y_train_pred, squared=False)
+best_params = grid_search.best_params_
+best_score = grid_search.best_score_
+y_test_pred = best_model.predict(X_test_scaled)
+# Average deviated cycles
+test_rmse = mean_squared_error(y_test, y_test_pred, squared=False)
+test_mae = mean_absolute_error(y_test, y_test_pred)
+r2 = r2_score(y_test, y_test_pred)
+results = pd.DataFrame({
+    'Model': ['ElasticNet'],
+    'Best Alpha': [best_params['alpha']],
+    'Best L1 Ratio': [best_params['l1_ratio']],
+    'Train RMSE': [train_rmse],
+    'Best CV Score': [best_score],
+    'Test RMSE': [test_rmse],
+    'Test MAE': [test_mae]
+})
+
+# Save the results to a CSV file
+results.to_csv('elasticnet_results.csv', index=False)
+import pandas as pd
+df= pd.DataFrame(grid_search.cv_results_)
+df.to_csv('summary2.csv')
+
+dir(grid_search)
+
+# Ten feature SVR
+X = features
+Y = Battery_Lifetime
+from sklearn.model_selection import GridSearchCV
+from sklearn.svm import SVR
+import numpy as np
+
+C_range = np.logspace(-2, 2, 5)
+gamma_range = np.logspace(-3, 3, 7)
+epsilon_range = np.logspace(-3, 0, 4)
+
+#C_range = np.logspace(-6, 8, 15)
+#gamma_range = np.logspace(-6, 0, 15)
+#epsilon_range = np.logspace(-5, 0, 15)
+param_grid = {'C': C_range, 'gamma': gamma_range, 'epsilon': epsilon_range}
+estimator = SVR(kernel='rbf')
+grid_search = GridSearchCV(estimator, param_grid, cv=3, scoring='neg_mean_absolute_error')
+X_train, X_test, y_train, y_test = train_test_split(X, Y, test_size=0.25)
+
+#Scaling
+from sklearn.preprocessing import StandardScaler
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+
+grid_search.fit(X_train_scaled, y_train)
+print("Best hyperparameters: ", grid_search.best_params_)
+print("Best MSE: ", np.abs(grid_search.best_score_))
+#estimator = SVR(kernel='rbf', C=107, gamma=1e-5, epsilon=0.1)
+#estimator.fit(X_train_scaled, y_train)
+estimator = grid_search.best_estimator_
+y_pred = estimator .predict(X_test_scaled)
+score = grid_search.best_score_
+Results = grid_search.cv_results_
+
+df= pd.DataFrame(AttributeErrorResults)
+df.to_csv('summary_10Feature_SVR.csv')
+
+# comparing model parameters
+Y = Y.reshape(1, -1)
+
+X_train, X_test, y_train, y_test = train_test_split(X, Y, test_size=0.2)
+
+
+#Scaling
+from sklearn.preprocessing import StandardScaler
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+
+model_params = {
+    'SVR': {
+        'model': SVR(kernel='rbf'),
+        'params' : {
+            'C': C_range,
+            'gamma': gamma_range,
+            'epsilon': epsilon_range
+        }  
+    },
+    'ElasticNet' : {
+        'model': ElasticNet(),
+        'params': {
+            'alpha': [0.2, 0.4, 1, 2, 3, 4, 5, 6],
+            'l1_ratio': [0.0001, 0.001, 0.01, 1]
+
+        }
+    }
+}
+results = []
+ 
+for model_name, mp in model_params.items():
+    clf =  GridSearchCV(mp['model'], mp['params'], cv=5,scoring='neg_mean_absolute_error', return_train_score=False)
+    clf.fit(X_train_scaled , y_train)
+    results.append({
+        'model': model_name,
+        'best_score': clf.best_score_,
+        'best_params': clf.best_params_
+    })
+
+df = pd.DataFrame(results)
+df.to_csv('All-models.csv')
+
+r_squared = reg.score(feature, Battery_Lifetime)
