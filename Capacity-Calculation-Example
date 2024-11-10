@@ -1,0 +1,35 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Mon Jun 26 15:55:33 2023
+
+@author: West
+"""
+import pandas as pd
+import matplotlib.pyplot as plt
+
+Test_Time_G1 = list(range(1, 21))
+Current_G1 = [t**2 + 2 for t in Test_Time_G1]
+Step_Index_G1 = [1, 2, 3, 5, 5, 5, 6, 6, 1, 1, 1, 2, 2, 5, 5, 6, 6, 1, 5, 6]
+
+cycle_indices = [0]  
+Discharge_Capacity = []  
+
+for i in range(1, len(Step_Index_G1)):
+    if Step_Index_G1[i-1] == 6 and Step_Index_G1[i] == 1:
+        cycle_indices.append(i)
+
+cycle_indices.append(len(Step_Index_G1))
+
+for i in range(len(cycle_indices)-1):
+    integral = 0
+    for j in range(cycle_indices[i], cycle_indices[i+1]):
+        if Step_Index_G1[j] in [5, 6]:  
+            if j > cycle_indices[i]: 
+                integral += 0.5 * (Current_G1[j] + Current_G1[j - 1]) * (Test_Time_G1[j] - Test_Time_G1[j - 1])
+    discharge_capacity = (integral / (4.85 * 3600)) * 100
+    Discharge_Capacity.append(discharge_capacity)
+
+plt.plot(range(1, len(Discharge_Capacity)+1), Discharge_Capacity)
+plt.xlabel('Cycling')
+plt.ylabel('Discharge Capacity')
+plt.show()
