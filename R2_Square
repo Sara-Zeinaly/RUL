@@ -1,0 +1,15 @@
+#R2
+from sklearn.linear_model import LinearRegression
+import numpy as np
+for i in range(features_flat.shape[1]):
+    R_squared = []
+    feature = features_flat[:, i]
+    feature = feature.reshape(-1, 1)
+    reg = LinearRegression()
+    reg.fit(feature, SOH)
+    EOL_Pred = reg.predict(feature)
+    r_squared = reg.score(feature, SOH)
+    print("R-squared: ", r_squared)
+
+
+
