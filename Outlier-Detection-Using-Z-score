@@ -1,0 +1,33 @@
+import pandas as pd
+import pickle
+from timeit import default_timer as timer
+import matplotlib.pyplot as plt
+
+#start = timer()
+
+with open('Discharge_Capacity_G1_interpolated.pkl', 'rb') as f:
+    Discharge_Capacity_int  = pickle.load(f)
+    
+with open('Test_Time_interpolated_G1_and_Voltage_G1_interpolated.pkl', 'rb') as f:
+    [Test_Time_G1_int, Voltage_G1_int] = pickle.load(f)
+   
+
+df = pd.DataFrame({'Test_Time_G1_int': Test_Time_G1_int, 'Discharge_Capacity_int': Discharge_Capacity_int})
+z_scores = (df['Discharge_Capacity_int'] - df['Discharge_Capacity_int'].mean()) / df['Discharge_Capacity_int'].std()
+
+threshold = 3
+
+outliers = df.loc[abs(z_scores) > threshold]
+
+df_cleaned = df.drop(outliers.index)
+
+plt.scatter(df_cleaned['Test_Time_G1_int'], df_cleaned['Discharge_Capacity_int'])
+
+plt.xlabel('Test_Time_G1_int')
+plt.ylabel('Capacity_G1')
+plt.title('Capacity versus Test_Time for Cell G1 interpolated (Cleaned Data)')
+plt.show()
+
+
+#end = timer()
+#print(end - start)
