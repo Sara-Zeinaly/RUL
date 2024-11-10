@@ -1,0 +1,58 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Fri Nov 17 13:37:35 2023
+
+@author: West
+"""
+import os
+os.chdir("F:\Data")
+
+from scipy.stats import pearsonr
+
+# Assuming your features are in a variable called 'features'
+correlations = []
+
+# Loop through each pair of features
+for i in range(features_flat.shape[1]):
+    for j in range(i+1, features_flat.shape[1]):
+        # Calculate Pearson correlation coefficient
+        correlation_coefficient, _ = pearsonr(features_flat[:, i], features_flat[:, j])
+        
+        # Append the result to the list
+        correlations.append((i, j, correlation_coefficient))
+
+
+# Sort the correlations by their absolute values
+sorted_correlations = sorted(correlations, key=lambda x: abs(x[2]), reverse=True)
+
+# Print the sorted correlations
+for correlation in sorted_correlations:
+    print(f"Features {correlation[0]} and {correlation[1]} have a Pearson correlation coefficient of {correlation[2]}")
+
+X = features_flat
+y = SOH
+# Calculate correlation coefficients
+correlations = np.abs(np.corrcoef(X.T, y.T)[:-1, -1])
+
+# Get the indices of the top 10 features
+top_10_indices = np.argsort(correlations)[-10:][::-1]
+
+# Get the names or indices of the top 10 features
+top_10_features = X[:, top_10_indices]
+
+# Print or use the top 10 features as needed
+print("Top 10 Feature Indices:", top_10_indices)
+print("Top 10 Feature Names:", top_10_features)
+
+#GREEKSFORGREEKS
+from scipy.stats import spearmanr
+
+X = features_flat[:,0]
+y = SOH
+
+# calculate Spearman's correlation coefficient and p-value
+corr, pval = spearmanr(X, y)
+ 
+# print the result
+print("Spearman's correlation coefficient:", corr)
+print("p-value:", pval)
